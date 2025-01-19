@@ -104,6 +104,7 @@ WinMain proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
         invoke BeginPaint, hWnd, ADDR ps
         mov hWindowHdc, eax
         .IF startFlag==0
+
         .ELSE
             ;创建画笔，绘制直线
             invoke CreatePen, PS_SOLID, 3, 0h
