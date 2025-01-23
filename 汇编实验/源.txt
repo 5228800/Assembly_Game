@@ -58,9 +58,8 @@ HeightOffset REAL4 12.0
 ;变换矩阵
 redTankxform  XFORM <>
 
-redTankPoint POINT {0, 0},{ 15, 0},{ 0, 24}
-;redTankPoint POINT 0, 0,0, 0, 0, 0
-fmt db "P1(%d, %d) P2(%d, %d) P3(%d, %d)", 0
+redTankPoint POINT <0, 0>, <0, 0>, <0, 0>
+
 .DATA?              
 hInstance HINSTANCE ?
 hWindow HWND ?
@@ -82,7 +81,6 @@ greenTankY dword ?
 greenTankStepX dword ?
 greenTankStepY dword ?
 
-tes REAL4 ?
 .code   
 extern rand:proc
 extern srand:proc
@@ -119,6 +117,99 @@ RandTankPosition proc
 
 	ret	
 RandTankPosition endp
+
+getRedTankPoint proc
+    LOCAL redTankcos:REAL4
+    LOCAL redTanksin:REAL4
+            mov edi, offset redTankPoint
+
+            fld redTankAngle
+            fsin
+            fstp redTanksin
+            fld redTankAngle
+            fcos
+            fstp redTankcos
+
+            fld const1
+            fld redTankcos
+            fsub
+            fld WidthOffset
+            fmul
+            fld HeightOffset
+            fld redTanksin
+            fmul
+            fadd
+            fild redTankX
+            fadd
+            fistp dword ptr [edi]
+            
+
+            fld const1
+            fld redTankcos
+            fsub
+            fld HeightOffset
+            fmul
+            fld WidthOffset
+            fld redTanksin
+            fmul
+            fsub
+            fild redTankY
+            fadd
+            fistp dword ptr [edi+4]
+
+            fld const1
+            fld redTankcos
+            fadd
+            fld WidthOffset
+            fmul
+            fld HeightOffset
+            fld redTanksin
+            fmul
+            fadd
+            fild redTankX
+            fadd
+            fistp dword ptr [edi+8]
+
+            fld const1
+            fld redTankcos
+            fsub
+            fld HeightOffset
+            fmul
+            fld WidthOffset
+            fld redTanksin
+            fmul
+            fadd
+            fild redTankY
+            fadd
+            fistp dword ptr [edi+12]
+
+            fld const1
+            fld redTankcos
+            fsub
+            fld WidthOffset
+            fmul
+            fld HeightOffset
+            fld redTanksin
+            fmul
+            fsub
+            fild redTankX
+            fadd
+            fistp dword ptr [edi+16]
+
+            fld const1
+            fld redTankcos
+            fadd
+            fld HeightOffset
+            fmul
+            fld WidthOffset
+            fld redTanksin
+            fmul
+            fsub
+            fild redTankY
+            fadd
+            fistp dword ptr [edi+20]
+            ret
+getRedTankPoint endp
 
 getRedTankPosition proc add_subFlag:dword
             ;重置坐标
@@ -157,6 +248,7 @@ getRedTankPosition proc add_subFlag:dword
                 fsub
             .ENDIF
             fstp redTankY
+            invoke getRedTankPoint
             ret
 getRedTankPosition endp
 
@@ -266,18 +358,19 @@ WinMain proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
             .IF initedFlag == 0
                 ; 随机两辆坦克的坐标
                 invoke RandTankPosition
+                invoke getRedTankPoint
                 mov initedFlag, 1
             .ENDIF
 
-            ;invoke SetGraphicsMode, BufferDC, GM_ADVANCED
-            ;invoke SetWorldTransform, BufferDC, ADDR redTankxform
+            invoke SetGraphicsMode, BufferDC, GM_ADVANCED
+            invoke SetWorldTransform, BufferDC, ADDR redTankxform
 
             ; 选择红色坦克位图并绘制
             invoke GetObject, redTankBitmap, SIZEOF BITMAP, ADDR bmp
             invoke SelectObject, BitmapDC, redTankBitmap
             invoke StretchBlt, BufferDC, redTankX, redTankY, bmp.bmWidth, bmp.bmHeight, BitmapDC, 0, 0,bmp.bmWidth, bmp.bmHeight, SRCCOPY
-            
-            ;invoke ModifyWorldTransform, BufferDC, NULL, MWT_IDENTITY
+            ;invoke PlgBlt, BufferDC, ADDR redTankPoint, BitmapDC, redTankX, redTankY, bmp.bmWidth, bmp.bmHeight, NULL, NULL, NULL
+            ;invoke PlgBlt, BufferDC, ADDR redTankPoint, BitmapDC, 100, 100, bmp.bmWidth, bmp.bmHeight, NULL, NULL, NULL
 
             ; 选择绿色坦克位图并绘制
             invoke GetObject, greenTankBitmap, SIZEOF BITMAP, ADDR bmp
@@ -296,44 +389,75 @@ WinMain proc hWnd:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
 	    invoke DeleteDC,hWindowHdc
 	    invoke EndPaint, hWnd, ADDR ps
 
-    ;计时器到时候了，调用一次，检测当前键盘输入
+
     .ELSEIF uMsg == WM_TIMER
         .IF initedFlag == 0
             ret
         .ENDIF
         invoke GetAsyncKeyState, VK_W
         .IF  ax == 8000h
-            invoke getRedTankPosition,1
+        ;.IF wParam == VK_W
+            invoke getRedTankPosition, 1
             invoke InvalidateRect, hWnd, NULL, FALSE
         .ENDIF
-
-        ;按下S
         invoke GetAsyncKeyState, VK_S
         .IF  ax == 8000h
-            invoke getRedTankPosition,0
+        ;.ELSEIF wParam == VK_S
+            invoke getRedTankPosition, 0
             invoke InvalidateRect, hWnd, NULL, FALSE
         .ENDIF
-
-        ;按下A
         invoke GetAsyncKeyState, VK_A
         .IF  ax == 8000h
+        ;.ELSEIF wParam == VK_A
             fld redTankAngle
             fld angleSpeed
             fadd
             fstp redTankAngle
-
-            invoke InvalidateRect, 
-            hWnd, NULL, FALSE
+            invoke getRedTankPoint
+            invoke InvalidateRect, hWnd, NULL, FALSE
         .ENDIF
-
-        ;按下D
-
         invoke GetAsyncKeyState, VK_D
         .IF  ax == 8000h
+        ;.ELSEIF wParam == VK_D
             fld redTankAngle
             fld angleSpeed
             fsub
-            fstp redTankAngle
+            fst redTankAngle
+
+            fsin
+            fist redTankxform.eM12
+            fchs
+            fistp redTankxform.eM21
+
+            fld redTankAngle
+            fcos
+            fist redTankxform.eM11
+            fistp redTankxform.eM22
+
+            ;mov redTankxform.ex, 200
+            ;mov redTankxform.ey, 200
+            fld1
+            fld redTankxform.eM11
+            fsub
+            fld redTankX
+            fmul
+            
+            fld redTankxform.eM12
+            fld redTankY
+            fmul
+            fsub
+            fistp redTankxform.ex
+
+            fld redTankxform.eM12
+            fld redTankX
+            fmul
+            fld1
+            fld redTankxform.eM11
+            fsub
+            fld redTankY
+            fmul
+            fadd
+            fistp redTankxform.ey
 
             invoke InvalidateRect, hWnd, NULL, FALSE
         .ENDIF
@@ -394,3 +518,230 @@ main proc
     ret 
 main endp
 end main
+
+
+
+    .ELSEIF uMsg == WM_PAINT
+        invoke BeginPaint, hWnd, ADDR ps
+        mov hWindowHdc, eax
+
+        invoke CreateCompatibleDC, hWindowHdc
+        mov BufferDC, eax
+
+        invoke CreateCompatibleDC, BufferDC
+        mov BitmapDC, eax
+
+        invoke CreateCompatibleBitmap, hWindowHdc, mapWidth, mapHeight
+        mov hbmp, eax
+
+        invoke SelectObject,BufferDC,hbmp
+        invoke SetBkColor, BufferDC, 0FFFFFFh
+        invoke PatBlt, BufferDC, 0, 0, mapWidth, mapHeight, WHITENESS
+
+	    invoke SetStretchBltMode,hWindowHdc,HALFTONE
+	    invoke SetStretchBltMode,BufferDC,HALFTONE
+
+        .IF startFlag==0
+
+        .ELSE
+            ;创建画笔，绘制直线
+            invoke CreatePen, PS_SOLID, 3, 0h
+            invoke SelectObject, BufferDC, eax
+
+            mov edi, 0
+            mov esi, 0
+            .WHILE esi <= mapHeightBlockNum            
+                invoke MoveToEx, BufferDC, 0, edi, NULL
+                invoke LineTo, BufferDC, mapWidth, edi
+                add edi,mapBlockSize
+                inc esi
+            .ENDW
+            mov edi, 0
+            mov esi, 0
+            .WHILE esi <= mapWidthBlockNum
+                invoke MoveToEx, BufferDC, edi, 0, NULL
+                invoke LineTo, BufferDC, edi, mapHeight
+                add edi,mapBlockSize
+                inc esi
+            .ENDW
+
+            ; 加载红色坦克图片
+            invoke LoadBitmap, hInstance, IDB_redTank
+            mov redTankBitmap, eax
+
+            ; 加载绿色坦克图片
+            invoke LoadBitmap, hInstance, IDB_greenTank
+            mov greenTankBitmap, eax
+
+            .IF initedFlag == 0
+                ; 随机两辆坦克的坐标
+                invoke RandTankPosition
+                mov initedFlag, 1
+            .ENDIF
+
+            invoke SetGraphicsMode, BufferDC, GM_ADVANCED
+            invoke SetWorldTransform, BufferDC, ADDR redTankxform
+
+            ; 选择红色坦克位图并绘制
+            invoke GetObject, redTankBitmap, SIZEOF BITMAP, ADDR bmp
+            invoke SelectObject, BitmapDC, redTankBitmap
+            invoke StretchBlt, BufferDC, redTankX, redTankY, bmp.bmWidth, bmp.bmHeight, BitmapDC, 0, 0,bmp.bmWidth, bmp.bmHeight, SRCCOPY
+            
+            invoke ModifyWorldTransform, BufferDC, NULL, MWT_IDENTITY
+
+            ; 选择绿色坦克位图并绘制
+            invoke GetObject, greenTankBitmap, SIZEOF BITMAP, ADDR bmp
+            invoke SelectObject, BitmapDC, greenTankBitmap
+            invoke StretchBlt, BufferDC, greenTankX, greenTankY, bmp.bmWidth, bmp.bmHeight, BitmapDC, 0, 0, bmp.bmWidth, bmp.bmHeight,SRCCOPY
+
+            invoke StretchBlt, hWindowHdc, mapOffset, mapOffset, mapWidth, mapHeight, BufferDC, 0, 0,mapWidth, mapHeight, SRCCOPY
+            invoke DeleteObject, redTankBitmap
+            invoke DeleteObject, greenTankBitmap
+        .ENDIF
+
+	    ;删除指针
+	    invoke DeleteDC,hbmp
+	    invoke DeleteDC,BitmapDC
+	    invoke DeleteDC,BufferDC
+	    invoke DeleteDC,hWindowHdc
+	    invoke EndPaint, hWnd, ADDR ps
+
+
+    .ELSEIF uMsg == WM_TIMER
+        .IF initedFlag == 0
+            ret
+        .ENDIF
+        invoke GetAsyncKeyState, VK_W
+        .IF  ax == 8000h
+        ;.IF wParam == VK_W
+            ;前进，重置坐标
+            fld redTankAngle
+            fsin
+            fstp redTankStepX
+
+            fld redTankAngle
+            fcos
+            fstp redTankStepY
+
+            fld speed
+            fld redTankStepX
+            fmul
+            fstp redTankStepX
+
+            fld speed
+            fld redTankStepY
+            fmul
+            fstp redTankStepY
+            
+            fld redTankX
+            fld redTankStepX
+            fadd
+            fstp redTankX
+
+            fld redTankY
+            fld redTankStepY
+            fadd
+            fstp redTankY
+            invoke InvalidateRect, hWnd, NULL, FALSE
+        .ENDIF
+        invoke GetAsyncKeyState, VK_S
+        .IF  ax == 8000h
+        ;.ELSEIF wParam == VK_S
+            fld redTankAngle
+            fsin
+            fstp redTankStepX
+
+            fld redTankAngle
+            fcos
+            fstp redTankStepY
+
+            fld speed
+            fld redTankStepX
+            fmul
+            fstp redTankStepX
+
+            fld speed
+            fld redTankStepY
+            fmul
+            fstp redTankStepY
+            
+            fld redTankX
+            fld redTankStepX
+            fsub
+            fstp redTankX
+
+            fld redTankY
+            fld redTankStepY
+            fsub
+            fstp redTankY
+            invoke InvalidateRect, hWnd, NULL, FALSE
+        .ENDIF
+        invoke GetAsyncKeyState, VK_A
+        .IF  ax == 8000h
+        ;.ELSEIF wParam == VK_A
+            fld redTankAngle
+            fld angleSpeed
+            fadd
+            fst redTankAngle
+
+            fsin
+            fst redTankxform.eM12
+            fchs
+            fstp redTankxform.eM21
+
+            fld redTankAngle
+            fcos
+            fst redTankxform.eM11
+            fstp redTankxform.eM22
+
+            ;mov redTankxform.ex, 200
+            ;mov redTankxform.ey, 200
+            fld1
+            fld redTankxform.eM11
+            fsub
+            fld redTankX
+            fmul
+            
+            fld redTankxform.eM12
+            fld redTankY
+            fmul
+            fsub
+            fstp redTankxform.ex
+
+            fld redTankxform.eM12
+            fld redTankX
+            fmul
+            fld1
+            fld redTankxform.eM11
+            fsub
+            fld redTankY
+            fmul
+            fadd
+            fstp redTankxform.ey
+
+            invoke InvalidateRect, hWnd, NULL, FALSE
+        .ENDIF
+        invoke GetAsyncKeyState, VK_D
+        .IF  ax == 8000h
+        ;.ELSEIF wParam == VK_D
+            fld redTankAngle
+            fld angleSpeed
+            fsub
+            fst redTankAngle
+
+            fsin
+            fst redTankxform.eM12
+            fchs
+            fstp redTankxform.eM21
+
+            fld redTankAngle
+            fcos
+            fst redTankxform.eM11
+            fstp redTankxform.eM22
+
+            mov redTankxform.ex, 1
+            mov redTankxform.ey, 1
+
+
+            invoke InvalidateRect, hWnd, NULL, FALSE
+        .ENDIF

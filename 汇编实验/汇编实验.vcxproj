@@ -153,6 +153,9 @@
     <Image Include="source\tankGreen.bmp" />
     <Image Include="source\tankRed.bmp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="源.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
